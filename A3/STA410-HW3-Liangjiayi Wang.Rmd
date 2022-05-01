@@ -1,0 +1,129 @@
+---
+title: "STA410 HW3"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Q1-c
+```{r}
+leverage <- function(x1,x2,w,r=10,m=100) {
+              qrx1 <- qr(x1)
+              qrx2 <- qr(x2)
+              n <- nrow(x1)
+              lev1 <- NULL
+              lev2 <- NULL
+              
+              for (i in 1:m) {
+                v <- ifelse(runif(n)>0.5,1,-1)
+                v[-w] <- 0
+                v1 <- qr.fitted(qrx1,v)
+                v2 <- qr.fitted(qrx2,v)
+                f1 <- v1
+                f2 <- v2
+              
+                for (j in 2:r) {
+                  v1[-w] <- 0
+                  v2[-w] <- 0
+                  v1 <- qr.fitted(qrx1,v1)
+                  v2 <- qr.fitted(qrx2,v2)
+                  f1 <- f1 + v1/j
+                  f2 <- f2 + v2/j
+                  }
+                lev1 <- c(lev1,sum(v*f1))
+                lev2 <- c(lev2,sum(v*f2))
+              }
+              
+              std1 <- exp(-mean(lev1))*sd(lev1)/sqrt(m)
+              std2 <- exp(-mean(lev2))*sd(lev2)/sqrt(m)
+              lev1 <- 1 - exp(-mean(lev1))
+              lev2 <- 1 - exp(-mean(lev2))
+              r <- list(lev=c(lev1,lev2),std.err=c(std1,std2))
+              r
+}
+```
+
+```{r}
+library(splines)
+x <- c(1:1000)/1000
+X1 <- 1
+for (k in 1:5) X1 <- cbind(X1,cos(2*k*pi*x),sin(2*k*pi*x))
+X2 <- cbind(1,bs(x,df=10))
+
+lever<-NULL
+for (k in 1:20) {
+  w<-c(((k-1)*50+1):(k*50))
+  result<-leverage(X1,X2,w=w,r=40,m=100)
+  lever<-rbind(lever,result$lev)
+  }
+lever
+```
+
+
+```{r}
+matplot(lever, type = c("b"),pch=1,col = 1:2,xlab="k",ylab="leverages")
+```
+In the sinusoidal(black) model,the 20 estimated leverages are around 0.52 from k = 1 to 20. In the B-spline (red), the 20 estimated leverages are largest at the first and last observations. In most of the points, model sinusoidal have greater leverages than B-spline.
+
+
+\newpage
+Q2-c
+```{r}
+cauchy.mle<-function(x,start1,start2,eps=1.e-8,max.iter=50){
+  if (missing(start1)) start1 <- median(x)
+  if (missing(start2)) start2 <- 1/2*IQR(x)
+  
+  # intial value of theta and sigma
+  theta <- start1
+  sigma <- start2
+  parameter <-c(theta,sigma)
+  n <- length(x)
+  
+  # original score S(theta) and S(sigma)
+  score_theta <- 2*sum((x-theta)/((x-theta)^2+sigma^2))
+  score_sigma <- n/sigma-sum(2*sigma/((x-theta)^2+sigma^2))
+  score <- c(score_theta,score_sigma)
+  
+  iter <- 1
+  conv <- T
+  
+  while (max(abs(score))>eps && iter<=max.iter){
+    # calculate the fisher information
+    info_aa <- 2*sum((sigma^2-(x-theta)^2)/((x-theta)^2+sigma^2)^2)
+    info_bb <- n/sigma^2+sum((2*((x-theta)^2-sigma^2))/((x-theta)^2+sigma^2)^2)
+    info_ab <- 4*(sum((sigma*(x-theta))/((x-theta)^2+sigma^2)^2))
+    info <-matrix(c(info_aa,info_ab,info_ab,info_bb),nrow=2,ncol=2)
+    
+
+    parameter <- parameter + solve(info,score)
+    theta<-parameter[1]
+    sigma <-parameter[2]
+    score_theta <- 2*sum((x-theta)/(sigma^2+(x-theta)^2))
+    score_sigma <- n/sigma-sum(2*sigma/(sigma^2+(x-theta)^2))
+    score <- c(score_theta ,score_sigma)
+    iter <- iter + 1
+    }
+  if (max(abs(score))>eps) {
+      print("No Convergence")
+      conv <- F
+      }
+
+    loglik <- n*log(sigma)-n*log(pi)-sum(log(sigma^2+(x-theta)^2))
+    
+    info_aa <- 2*sum((sigma^2-(x-theta)^2)/((x-theta)^2+sigma^2)^2)
+    info_bb <- n/sigma^2+sum((2*((x-theta)^2-sigma^2))/((x-theta)^2+sigma^2)^2)
+    info_ab <- 4*(sum((sigma*(x-theta))/((x-theta)^2+sigma^2)^2))
+    info <-matrix(c(info_aa,info_ab,info_ab,info_bb),nrow=2,ncol=2)
+    
+
+    r <- list(parameter=parameter,loglik=loglik,info=info,varcov = solve(info),
+              convergence=conv,score=score)
+    r
+}
+
+set.seed(123)
+x <- rcauchy(1000) + 8
+r <- cauchy.mle(x)
+r
+```
+
