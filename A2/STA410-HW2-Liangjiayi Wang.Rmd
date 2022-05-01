@@ -1,0 +1,87 @@
+---
+title: "STA410 A2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+HP <- function(x,lambda,p=20,niter=200) {
+        n <- length(x)
+        a <- c(1,-2,1)
+        aa <- c(a,rep(0,n-2))
+        aaa <- c(rep(aa,n-3),a)
+        mat <- matrix(aaa,ncol=n,byrow=T)
+        mat <- rbind(diag(rep(1,n)),sqrt(lambda)*mat)
+        xhat <- x
+        x <- c(x,rep(0,n-2))
+        sumofsquares <- NULL
+        for (i in 1:niter) {
+           w <- sort(sample(c(1:n),size=p))
+           xx <- mat[,w]
+           y <- x - mat[,-w]%*%xhat[-w]
+           r <- lsfit(xx,y,intercept=F)
+           xhat[w] <- r$coef
+           sumofsquares <- c(sumofsquares,sum(r$residuals^2))
+           }
+        r <- list(xhat=xhat,ss=sumofsquares)
+        r
+        }
+```
+
+```{r}
+data<-scan("C:/Users/WLJY8/Desktop/Courses/YEAR 4/STA410/A2/yield.txt")
+```
+<br>
+p=5
+<br>
+```{r}
+r <- HP(data,lambda=2000,p=5,niter=100)
+plot(r$ss)
+```
+<br>
+p=10
+<br>
+```{r}
+r <- HP(data,lambda=2000,p=10,niter=100)
+plot(r$ss)
+```
+<br>
+p=20
+<br>
+```{r}
+r <- HP(data,lambda=2000,p=20,niter=100)
+plot(r$ss)
+```
+<br>
+p=30
+<br>
+```{r}
+r <- HP(data,lambda=2000,p=30,niter=100)
+plot(r$ss)
+```
+<br>
+p=40
+<br>
+```{r}
+r <- HP(data,lambda=2000,p=40,niter=100)
+plot(r$ss)
+```
+<br>
+p=50
+<br>
+```{r}
+r <- HP(data,lambda=2000,p=50,niter=100)
+plot(r$ss)
+```
+
+As p increases, the objective function value decreases more quickly as a function of the number of iterations.
+
+
+
+
+
+
+
