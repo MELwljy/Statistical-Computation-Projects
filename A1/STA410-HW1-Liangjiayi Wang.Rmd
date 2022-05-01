@@ -1,0 +1,128 @@
+---
+title: "STA410"
+output: html_document
+---
+
+Q1-b
+```{r setup}
+fwht2d <- function(x) {
+  h <- 1
+  len <- ncol(x)
+  while (h < len) {
+    for (i in seq(1,len,by=h*2)) {
+      for (j in seq(i,i+h-1)) {
+        a <- x[,j]
+        b <- x[,j+h]
+        x[,j] <- a + b
+        x[,j+h] <- a - b
+      }
+    }
+    h <- 2*h
+  }
+  h <- 1
+  len <- nrow(x)
+  while (h < len) {
+    for (i in seq(1,len,by=h*2)) {
+      for (j in seq(i,i+h-1)) {
+        a <- x[j,]
+        b <- x[j+h,]
+        x[j,] <- a + b
+        x[j+h,] <- a - b
+      }
+    }
+    h <- 2*h
+  }
+  x
+}
+```
+
+```{r}
+hard.thresholding<-function(x,lambda){
+  xhat<-fwht2d(x) # W-H transform
+  xhat<-ifelse(abs(xhat)<=lambda,0,xhat) 
+  xx<-fwht2d(xhat)/((ncol(xhat))^2) # inverse transform
+  xx
+}
+
+soft.thresholding<-function(x,lambda){
+  xhat<-fwht2d(x) # W-H transform
+  xhat<-sign(xhat)*pmax(abs(xhat)-lambda,0) 
+  xx<-fwht2d(xhat)/((ncol(xhat))^2) # inverse transform
+  xx
+}
+```
+
+Q1-c
+```{r}
+design<-matrix(scan("C:/Users/WLJY8/Desktop/Courses/YEAR 4/STA410/A1/design.txt"),ncol = 256,byrow = T)
+colours <-grey(seq(0,1,length=256))
+#image(design, axes=F, col=colours)
+```
+
+Hard-thresholding images with lambda = 5,10,30,50
+```{r}
+par(mfrow=c(2,2))
+pic5<-hard.thresholding(design,5)
+pic15<-hard.thresholding(design,15)
+pic30<-hard.thresholding(design,30)
+pic50<-hard.thresholding(design,50)
+
+image(pic5,axes=F,col = colours,sub="lamba=5")
+image(pic15,axes=F,col = colours,sub="lamba=15")
+image(pic30,axes=F,col = colours,sub="lamba=30")
+image(pic50,axes=F,col = colours,sub="lamba=50")
+
+mtext("Hard Thresholding", side = 3, line = -2, outer = TRUE,cex=1)
+```
+
+Soft-thresholding images with lambda = 5,10,15,20
+```{r}
+par(mfrow=c(2,2))
+pic_5<-soft.thresholding(design,5)
+pic_15<-soft.thresholding(design,15)
+pic_30<-soft.thresholding(design,30)
+pic_50<-soft.thresholding(design,50)
+
+image(pic_5,axes=F,col = colours,sub="lamba=5")
+image(pic_15,axes=F,col = colours,sub="lamba=15")
+image(pic_30,axes=F,col = colours,sub="lamba=30")
+image(pic_50,axes=F,col = colours,sub="lamba=50")
+
+mtext("Soft Thresholding", side = 3, line = -2, outer = TRUE,cex=1)
+```
+
+For both methods, With larger $\lambda$, the clarity of graph decreases. With the same lambda, Hard-thresholding method is better compare to Soft-thresholding method.
+
+\newpage
+<br>
+2-d
+```{r}
+dist<-function(theta,px,M){
+  px<-c(px,rep(0,M-(length(px)-1)-1))
+  pj_hat<-fft(px)
+  ps_hat<-(1-theta)/(1-theta*pj_hat) 
+  ps <- Re(fft(ps_hat,inv=T))/M 
+  df <- list(y=c(0:(M-1)),probs=ps)
+  df
+}
+
+x<-c(0:10)
+px<-choose(10,x)*(1/2)^10
+t <- c(1010:12000)/1000
+pgf <- ((1+t)^10)/(2^10)
+
+a <- log(1-0.9*pgf)
+b <- cbind(t,a)
+col <- na.omit(b)
+
+M <- min((log(0.1)-log(10^(-5))-col[,2])/(log(col[,1])))
+M
+
+distribution_S<-dist(0.9,px,M)
+plot(distribution_S$y,distribution_S$probs)
+```
+
+
+
+
+
